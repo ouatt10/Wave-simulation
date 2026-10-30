@@ -26,8 +26,8 @@ import { useTransactionPages } from "@/hooks/useTransactionPages";
 import { groupThousands } from "@/utils/format";
 import { qrPayload } from "@/utils/qr";
 
-// La barre de recherche n'apparaît qu'à partir de ce nombre d'opérations.
-const SEARCH_MIN_ITEMS = 2;
+// Comme sur Wave, « Rechercher » n'apparaît qu'une fois arrivé en bas de la liste (à 40 px près).
+const BOTTOM_TOLERANCE = 40;
 
 // Barre compacte : elle descend quand le grand solde quitte l'écran, comme sur Wave.
 const COMPACT_BAR_HEIGHT = 52;
@@ -41,6 +41,10 @@ export default function HomeScreen() {
   const [scrollY] = useState(() => new Animated.Value(0));
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [atBottom, setAtBottom] = useState(false);
+  // Hauteurs de la liste et de son contenu : si tout tient à l'écran, on est déjà « en bas ».
+  const [listHeight, setListHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
   // null : pas de recherche en cours ; sinon, le texte tapé.
   const [query, setQuery] = useState(null);
   const [search, setSearch] = useState("");
@@ -81,7 +85,12 @@ export default function HomeScreen() {
   if (!user) return null; // pendant la déconnexion, avant la redirection
 
   const searching = query !== null;
-  const canSearch = history.items.length >= SEARCH_MIN_ITEMS || history.hasMore;
+  const fitsOnScreen = listHeight > 0 && contentHeight <= listHeight + BOTTOM_TOLERANCE;
+  const canSearch = (atBottom || fitsOnScreen) && history.items.length > 0;
+
+  // À chaque défilement : sommes-nous arrivés en bas ? (React ignore le setState si rien ne change.)
+  const onScrollUpdate = ({ nativeEvent: { contentOffset, layoutMeasurement, contentSize } }) =>
+    setAtBottom(contentOffset.y + layoutMeasurement.height >= contentSize.height - BOTTOM_TOLERANCE);
 
   const header = searching ? (
     <View style={[styles.searchHeader, { paddingTop: insets.top + spacing.md }]}>
@@ -194,8 +203,13 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.4}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true },
+          {
+            useNativeDriver: true,
+            listener: onScrollUpdate,
+          },
         )}
+        onLayout={(e) => setListHeight(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_, height) => setContentHeight(height)}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -283,6 +297,7 @@ function Action({ icon, color, bg, label, onPress }) {
 
 // La feuille blanche commence aux deux tiers de la carte QR, comme sur Wave.
 const QR_OVERLAP = 160;
+const SHEET_RADIUS = 40;
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
@@ -338,7 +353,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: QR_OVERLAP + 40,
+    height: QR_OVERLAP + SHEET_RADIUS, // le violet passe sous les coins arrondis
     backgroundColor: colors.brand,
   },
   sheetLayer: {
@@ -348,9 +363,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: colors.background,
-    // Coin gauche plus petit : il doit tenir dans la marge à gauche de la carte QR.
-    borderTopLeftRadius: spacing.lg,
-    borderTopRightRadius: 40,
+    // Même arrondi des deux côtés de la carte QR.
+    borderTopLeftRadius: SHEET_RADIUS,
+    borderTopRightRadius: SHEET_RADIUS,
   },
   qrCard: {
     marginHorizontal: spacing.xl,
