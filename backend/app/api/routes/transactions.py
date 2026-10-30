@@ -67,8 +67,9 @@ def list_transactions(
     db: DbSession,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
     cursor: uuid.UUID | None = None,
+    q: Annotated[str | None, Query(max_length=50)] = None,
 ) -> TransactionPage:
-    rows, next_cursor = tx_service.list_for_user(db, user, limit, cursor)
+    rows, next_cursor = tx_service.list_for_user(db, user, limit, cursor, q)
     return TransactionPage(items=[tx_out(tx, user) for tx in rows], next_cursor=next_cursor)
 
 

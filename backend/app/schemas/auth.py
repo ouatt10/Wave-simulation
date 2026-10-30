@@ -22,6 +22,11 @@ class LoginIn(BaseModel):
     pin: Pin
 
 
+class ChangePinIn(BaseModel):
+    current_pin: Pin
+    new_pin: Pin
+
+
 class OtpSentOut(BaseModel):
     phone: str
     expires_in: int

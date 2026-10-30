@@ -35,6 +35,8 @@ FIELD_MESSAGES = {
     "phone": "Numéro de téléphone invalide.",
     "to_phone": "Numéro du destinataire invalide.",
     "pin": "Le code PIN doit contenir 4 chiffres.",
+    "current_pin": "Le code PIN doit contenir 4 chiffres.",
+    "new_pin": "Le code PIN doit contenir 4 chiffres.",
     "code": "Le code doit contenir 6 chiffres.",
     "amount": f"Le montant doit être compris entre {_fcfa(MIN_AMOUNT)} et {_fcfa(MAX_AMOUNT)} FCFA.",
 }

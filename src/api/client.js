@@ -54,7 +54,9 @@ export async function request(path, { method = "GET", body, form, auth = true } 
       body: payload,
       signal: controller.signal,
     });
-  } catch {
+  } catch (cause) {
+    // En développement, on garde une trace de la vraie cause dans le terminal Expo.
+    if (__DEV__) console.warn(`[api] ${method} ${path} :`, cause);
     throw new ApiError(0, NETWORK_ERROR);
   } finally {
     clearTimeout(timeout);

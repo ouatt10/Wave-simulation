@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, spacing } from "@/constants/theme";
@@ -14,29 +13,23 @@ export function describeTransaction(tx) {
     : { title: `De ${name}`, icon: "arrow-down", tint: colors.success, bg: colors.successLight };
 }
 
-// Montant vu par l'utilisateur : ce qui entre (+) ou sort, frais compris (−).
+// Montant vu par l'utilisateur : ce qui sort, frais compris, est précédé d'un « − ».
 export function signedAmount(tx) {
-  return tx.direction === "out"
-    ? `−${formatAmount(tx.amount + tx.fee)}`
-    : `+${formatAmount(tx.amount)}`;
+  return tx.direction === "out" ? `−${formatAmount(tx.amount + tx.fee)}` : formatAmount(tx.amount);
 }
 
+// Ligne d'historique façon Wave : titre et date à gauche, montant à droite.
 export default function TransactionItem({ tx, onPress }) {
-  const { title, icon, tint, bg } = describeTransaction(tx);
+  const { title } = describeTransaction(tx);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-      <View style={[styles.icon, { backgroundColor: bg }]}>
-        <Ionicons name={icon} size={20} color={tint} />
-      </View>
       <View style={styles.texts}>
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
         <Text style={styles.date}>{formatDate(tx.created_at)}</Text>
       </View>
-      <Text style={[styles.amount, tx.direction === "in" && styles.amountIn]}>
-        {signedAmount(tx)}
-      </Text>
+      <Text style={styles.amount}>{signedAmount(tx)}</Text>
     </Pressable>
   );
 }
@@ -49,16 +42,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   pressed: { opacity: 0.6 },
-  icon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   texts: { flex: 1 },
-  title: { fontSize: 16, fontWeight: "600", color: colors.text },
-  date: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  amount: { fontSize: 16, fontWeight: "700", color: colors.text },
-  amountIn: { color: colors.success },
+  title: { fontSize: 17, fontWeight: "600", color: colors.navy },
+  date: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
+  amount: { fontSize: 17, fontWeight: "600", color: colors.navy },
 });

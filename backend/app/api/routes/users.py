@@ -1,11 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUser, DbSession, VerifiedUser
 from app.models import User
+from app.schemas.auth import ChangePinIn
 from app.schemas.fields import Phone
 from app.schemas.user import MeOut, RecipientOut
+from app.services import auth as auth_service
 from app.services import transactions as tx_service
 
 router = APIRouter(tags=["users"])
@@ -26,6 +28,11 @@ def me_out(user: User) -> MeOut:
 @router.get("/me")
 def me(user: CurrentUser) -> MeOut:
     return me_out(user)
+
+
+@router.post("/me/pin", status_code=status.HTTP_204_NO_CONTENT)
+def change_pin(body: ChangePinIn, user: CurrentUser, db: DbSession) -> None:
+    auth_service.change_pin(db, user, body.current_pin, body.new_pin)
 
 
 @router.get("/users/lookup")

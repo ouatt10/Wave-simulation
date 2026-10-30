@@ -16,6 +16,9 @@ export const api = {
 
   me: () => request("/me"),
 
+  changePin: (currentPin, newPin) =>
+    request("/me/pin", { method: "POST", body: { current_pin: currentPin, new_pin: newPin } }),
+
   submitKyc: (form) => request("/kyc", { method: "POST", form }),
 
   // encodeURIComponent : dans une URL, un "+" brut serait lu comme un espace.
@@ -33,8 +36,10 @@ export const api = {
       body: { to_phone: toPhone, amount, pin, idempotency_key: idempotencyKey },
     }),
 
-  transactions: ({ limit = 20, cursor } = {}) => {
-    const query = `limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`;
+  transactions: ({ limit = 20, cursor, q } = {}) => {
+    let query = `limit=${limit}`;
+    if (cursor) query += `&cursor=${cursor}`;
+    if (q) query += `&q=${encodeURIComponent(q)}`;
     return request(`/transactions?${query}`);
   },
 

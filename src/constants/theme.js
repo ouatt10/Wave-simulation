@@ -2,8 +2,13 @@ export const colors = {
   primary: "#1DC4FF",
   primaryDark: "#0A9BD1",
   primaryLight: "#E6F8FF",
+  // Bandeau violet et texte bleu nuit de l'accueil Wave.
+  brand: "#5154DB",
+  qrPattern: "#4DD3FF", // losanges en fond de la carte QR
+  navy: "#1F2282",
   background: "#FFFFFF",
   surface: "#F4F6F8",
+  page: "#EEF0F4",
   text: "#111827",
   textMuted: "#6B7280",
   border: "#E5E7EB",

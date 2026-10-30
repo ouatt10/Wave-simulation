@@ -159,3 +159,21 @@ def test_concurrent_transfers_never_overdraw(make_user, session_factory, balance
     assert results == ["insufficient_funds", "ok"]
     assert balance_of(ALICE) == 0
     assert balance_of(BOB) == 10_000
+
+
+def test_history_search(client, make_user, login):
+    make_user(ALICE, balance=10_000)
+    make_user(BOB)  # nom : « Prénom Test2 »
+    alice = login(ALICE)
+    client.post("/transactions/deposit", headers=alice, json={"amount": 650, "idempotency_key": _key()})
+    _transfer(client, alice, 1000)
+
+    def search(q):
+        return [t["type"] for t in client.get("/transactions", headers=alice, params={"q": q}).json()["items"]]
+
+    assert search("test2") == ["transfer"]
+    assert search(BOB[-4:]) == ["transfer"]
+    assert search("dépôt") == ["deposit"]
+    assert search("650") == ["deposit"]
+    assert search("Prénom") == ["transfer"]  # le nom d'Alice elle-même ne compte pas
+    assert search("introuvable") == []

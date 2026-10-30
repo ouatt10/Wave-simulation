@@ -67,3 +67,13 @@ def login(db: Session, phone: str, pin: str) -> User:
     lockout.check_pin(db, user, pin, utcnow())
     db.commit()
     return user
+
+
+def change_pin(db: Session, user: User, current_pin: str, new_pin: str) -> None:
+    """Le PIN actuel passe par le blocage progressif, comme à la connexion."""
+    user = _get_by_phone(db, user.phone, for_update=True)
+    lockout.check_pin(db, user, current_pin, utcnow())
+    if current_pin == new_pin:
+        raise AppError(400, "same_pin", "Le nouveau code doit être différent de l'ancien.")
+    user.pin_hash = hash_secret(new_pin)
+    db.commit()

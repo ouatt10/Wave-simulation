@@ -27,6 +27,13 @@ export function formatPhone(e164) {
   return `${country.dial} ${groupPairs(e164.slice(country.dial.length))}`;
 }
 
+// "+2250788139299" → "07 88 13 92 99" (sans l'indicatif, comme sur Wave)
+export function formatLocalPhone(e164) {
+  if (!e164) return "";
+  const country = COUNTRIES.find((c) => e164.startsWith(c.dial));
+  return country ? groupPairs(e164.slice(country.dial.length)) : e164;
+}
+
 export function formatDate(iso) {
   const d = new Date(iso);
   const pad = (n) => String(n).padStart(2, "0");

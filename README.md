@@ -23,7 +23,10 @@ d'identité (KYC), dépôts et transferts d'argent.
 - **Verrouillage** : dès que l'app passe en arrière-plan, le PIN est redemandé.
 - **Blocage progressif** : 3 PIN faux → 1 min, puis 5 min, 15 min, 1 h.
 - **Dépôt** fictif et **transfert** vers un autre compte (frais de 1 %, arrondis au franc supérieur).
-- **Historique** paginé et **reçu** détaillé de chaque opération.
+- **Accueil façon Wave** : solde, code QR, historique paginé avec recherche (nom, numéro, montant, référence).
+- **Code QR** : chaque compte a le sien ; « Scanner » ouvre directement le transfert vers ce compte.
+- **Paramètres** : profil, code QR, changement du code secret, plafond, verrouillage, déconnexion.
+- **Reçu** détaillé de chaque opération.
 
 ## Règles métier
 
@@ -84,7 +87,7 @@ WAVE/
 │   ├── app/              écrans (Expo Router : chaque fichier = une route)
 │   │   ├── (auth)/       numéro, PIN, OTP, connexion
 │   │   ├── kyc.js        vérification d'identité
-│   │   └── (app)/        accueil, dépôt, transfert, historique, profil
+│   │   └── (app)/        accueil (historique + recherche), dépôt, transfert, QR, scanner, paramètres
 │   ├── components/       clavier numérique, cases de code, écran de verrouillage…
 │   ├── context/          session et verrouillage (AuthContext)
 │   ├── api/              appels HTTP vers FastAPI
@@ -97,7 +100,7 @@ WAVE/
     │   ├── models/       tables PostgreSQL (SQLAlchemy)
     │   └── core/         configuration, sécurité, règles
     ├── alembic/          migrations
-    └── tests/            36 tests (pytest)
+    └── tests/            38 tests (pytest)
 ```
 
 ### Points de sécurité

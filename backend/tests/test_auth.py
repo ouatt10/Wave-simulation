@@ -120,3 +120,19 @@ def test_validation_errors_use_app_format(client):
     assert error["fields"]["pin"] == "Le code PIN doit contenir 4 chiffres."
 
 
+
+
+def test_change_pin(client, make_user, login):
+    make_user(PHONE)
+    headers = login(PHONE)
+
+    res = client.post("/me/pin", headers=headers, json={"current_pin": "9999", "new_pin": "4826"})
+    assert res.status_code == 401
+    assert res.json()["error"]["code"] == "invalid_pin"
+
+    res = client.post("/me/pin", headers=headers, json={"current_pin": "1234", "new_pin": "1234"})
+    assert res.json()["error"]["code"] == "same_pin"
+
+    assert client.post("/me/pin", headers=headers, json={"current_pin": "1234", "new_pin": "4826"}).status_code == 204
+    assert client.post("/auth/login", json={"phone": PHONE, "pin": "1234"}).status_code == 401
+    login(PHONE, pin="4826")

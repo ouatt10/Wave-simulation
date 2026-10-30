@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import {
@@ -81,12 +82,9 @@ export default function KycScreen() {
     form.append("birth_date", isoDate);
     form.append("id_type", idType);
     form.append("id_number", idNumber.trim());
-    const mimeType = photo.mimeType ?? "image/jpeg";
-    form.append("photo", {
-      uri: photo.uri,
-      name: photo.fileName ?? `piece.${mimeType === "image/png" ? "png" : "jpg"}`,
-      type: mimeType,
-    });
+    // Le fetch d'Expo n'accepte pas l'ancien format { uri, name, type } :
+    // on lui donne un File, qu'il lit lui-même (nom, type MIME et contenu).
+    form.append("photo", new File(photo.uri));
 
     setBusy(true);
     try {

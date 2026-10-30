@@ -1,7 +1,7 @@
 import secrets
 import uuid
 
-from sqlalchemy import or_, select, tuple_
+from sqlalchemy import func, or_, select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -123,8 +123,33 @@ def _involving(user: User):
     return or_(Transaction.sender_id == user.id, Transaction.receiver_id == user.id)
 
 
+def _matching(user: User, search: str):
+    """Recherche par nom ou numéro de l'autre personne, référence, montant ou « dépôt »."""
+    term = search.strip()
+    digits = "".join(c for c in term if c.isdigit())
+    full_name = func.concat(Identity.first_name, " ", Identity.last_name)
+
+    people = [full_name.icontains(term, autoescape=True)]
+    if digits:
+        people.append(User.phone.contains(digits, autoescape=True))
+    counterparts = (
+        select(User.id).outerjoin(Identity).where(User.id != user.id, or_(*people))
+    )
+
+    conditions = [
+        Transaction.sender_id.in_(counterparts),
+        Transaction.receiver_id.in_(counterparts),
+        Transaction.reference.icontains(term, autoescape=True),
+    ]
+    if digits == term:
+        conditions.append(Transaction.amount == int(digits))
+    if "dépôt".startswith(term.lower()) or "depot".startswith(term.lower()):
+        conditions.append(Transaction.type == TransactionType.DEPOSIT)
+    return or_(*conditions)
+
+
 def list_for_user(
-    db: Session, user: User, limit: int, cursor: uuid.UUID | None
+    db: Session, user: User, limit: int, cursor: uuid.UUID | None, search: str | None = None
 ) -> tuple[list[Transaction], uuid.UUID | None]:
     query = (
         select(Transaction)
@@ -132,6 +157,8 @@ def list_for_user(
         .order_by(Transaction.created_at.desc(), Transaction.id.desc())
         .limit(limit + 1)
     )
+    if search and search.strip():
+        query = query.where(_matching(user, search))
     if cursor is not None:
         anchor = get_for_user(db, user, cursor)
         query = query.where(

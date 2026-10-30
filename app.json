@@ -9,7 +9,15 @@
     "scheme": "wave",
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "La caméra sert à scanner le code QR d'un autre compte WAVE.",
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-font"
     ],
     "ios": {
       "supportsTablet": true
