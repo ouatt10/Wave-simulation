@@ -4,7 +4,7 @@ import { setStatusBarStyle } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  Animated,
   KeyboardAvoidingView,
   Pressable,
   RefreshControl,
@@ -27,11 +27,18 @@ import { groupThousands } from "@/utils/format";
 import { qrPayload } from "@/utils/qr";
 
 // La barre de recherche n'apparaît qu'à partir de ce nombre d'opérations.
-const SEARCH_MIN_ITEMS = 10;
+const SEARCH_MIN_ITEMS = 2;
+
+// Barre compacte : elle descend quand le grand solde quitte l'écran, comme sur Wave.
+const COMPACT_BAR_HEIGHT = 52;
+const COMPACT_SHOW_FROM = 100;
+const COMPACT_SHOW_AT = 140;
 
 export default function HomeScreen() {
   const { user, token, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
+  // Position verticale du défilement, suivie sans redessiner l'écran.
+  const [scrollY] = useState(() => new Animated.Value(0));
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   // null : pas de recherche en cours ; sinon, le texte tapé.
@@ -161,17 +168,21 @@ export default function HomeScreen() {
     empty = <Text style={styles.empty}>Aucune transaction pour l&apos;instant. Commence par un dépôt !</Text>;
   }
 
+  // Hauteur totale de la barre, encoche comprise : c'est la distance à parcourir pour la cacher.
+  const compactHeight = insets.top + COMPACT_BAR_HEIGHT;
+  const compactTranslateY = scrollY.interpolate({
+    inputRange: [COMPACT_SHOW_FROM, COMPACT_SHOW_AT],
+    outputRange: [-compactHeight, 0],
+    extrapolate: "clamp",
+  });
+
   return (
     <KeyboardAvoidingView style={styles.screen} behavior="padding">
-      <FlatList
+      <Animated.FlatList
         style={styles.list}
         data={history.items}
         keyExtractor={(tx) => tx.id}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <TransactionItem tx={item} onPress={() => router.push(`/transaction/${item.id}`)} />
-          </View>
-        )}
+        renderItem={renderTransaction}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ListFooterComponent={
@@ -181,6 +192,11 @@ export default function HomeScreen() {
         }
         onEndReached={history.loadMore}
         onEndReachedThreshold={0.4}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
+        )}
+        scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           searching ? undefined : (
@@ -188,6 +204,29 @@ export default function HomeScreen() {
           )
         }
       />
+
+      {!searching && (
+        <Animated.View
+          style={[
+            styles.compactBar,
+            { paddingTop: insets.top, height: compactHeight, transform: [{ translateY: compactTranslateY }] },
+          ]}
+        >
+          <Pressable onPress={() => router.push("/settings")} hitSlop={12} accessibilityLabel="Paramètres">
+            <Ionicons name="settings-sharp" size={22} color={colors.white} />
+          </Pressable>
+          <Pressable style={styles.compactBalance} onPress={() => setBalanceHidden((h) => !h)}>
+            <Text style={styles.compactBalanceText}>
+              {balanceHidden ? "••••••" : `${groupThousands(user.balance)}F`}
+            </Text>
+            <Ionicons name={balanceHidden ? "eye-outline" : "eye-off-outline"} size={18} color={colors.white} />
+          </Pressable>
+          <View style={styles.account}>
+            <SimIcon size={14} color={colors.navy} />
+            <Text style={styles.accountText}>{user.phone.slice(-4)}</Text>
+          </View>
+        </Animated.View>
+      )}
 
       {searching ? (
         <View style={[styles.searchBar, { paddingBottom: insets.bottom + spacing.sm }]}>
@@ -213,12 +252,21 @@ export default function HomeScreen() {
             style={[styles.searchPill, { bottom: insets.bottom + spacing.md }]}
             onPress={() => setQuery("")}
           >
-            <Ionicons name="search" size={18} color={colors.white} />
+            <Ionicons name="search" size={20} color={colors.brand} />
             <Text style={styles.searchPillText}>Rechercher</Text>
           </Pressable>
         )
       )}
     </KeyboardAvoidingView>
+  );
+}
+
+// Définie hors du composant : la liste réutilise toujours la même fonction de rendu.
+function renderTransaction({ item }) {
+  return (
+    <View style={styles.item}>
+      <TransactionItem tx={item} onPress={() => router.push(`/transaction/${item.id}`)} />
+    </View>
   );
 }
 
@@ -257,6 +305,24 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   accountText: { color: colors.navy, fontSize: 15, fontWeight: "800", letterSpacing: 0.5 },
+  compactBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.brand,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  compactBalance: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  compactBalanceText: { color: colors.white, fontSize: 18, fontWeight: "800", letterSpacing: 1 },
   balanceRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -331,17 +397,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.navy,
+    backgroundColor: "#E6E8FF",
     paddingHorizontal: spacing.lg,
     paddingVertical: 12,
     borderRadius: radius.full,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
   },
-  searchPillText: { color: colors.white, fontWeight: "700", fontSize: 15 },
+  searchPillText: { color: colors.brand, fontWeight: "600", fontSize: 17 },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",

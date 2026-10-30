@@ -40,6 +40,14 @@ export function formatDate(iso) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()} à ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Format court de l'historique : "26 oct., 16:46" (l'année seulement si ce n'est pas l'année en cours).
+export function formatShortDate(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  const year = d.getFullYear() === new Date().getFullYear() ? "" : ` ${d.getFullYear()}`;
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${year}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 // 330 → "5 min 30 s"
 export function formatDuration(seconds) {
   const minutes = Math.floor(seconds / 60);

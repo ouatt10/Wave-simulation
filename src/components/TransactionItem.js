@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, spacing } from "@/constants/theme";
-import { formatAmount, formatDate } from "@/utils/format";
+import { formatAmount, formatShortDate, groupThousands } from "@/utils/format";
 
 export function describeTransaction(tx) {
   if (tx.type === "deposit") {
@@ -19,7 +20,9 @@ export function signedAmount(tx) {
 }
 
 // Ligne d'historique façon Wave : titre et date à gauche, montant à droite.
-export default function TransactionItem({ tx, onPress }) {
+// memo : une ligne déjà affichée n'est pas redessinée quand la page suivante arrive.
+export default memo(function TransactionItem({ tx, onPress }) {
+  const amount = tx.direction === "out" ? tx.amount + tx.fee : tx.amount;
   const { title } = describeTransaction(tx);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
@@ -27,12 +30,15 @@ export default function TransactionItem({ tx, onPress }) {
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
-        <Text style={styles.date}>{formatDate(tx.created_at)}</Text>
+        <Text style={styles.date}>{formatShortDate(tx.created_at)}</Text>
       </View>
-      <Text style={styles.amount}>{signedAmount(tx)}</Text>
+      <Text style={styles.amount}>
+        {tx.direction === "out" ? "-" : ""}
+        {groupThousands(amount)}F
+      </Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: {
