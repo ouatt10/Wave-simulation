@@ -11,6 +11,7 @@ from app.schemas.transaction import (
     TransactionOut,
     TransactionPage,
     TransferIn,
+    WithdrawIn,
 )
 from app.schemas.user import RecipientOut
 from app.services import transactions as tx_service
@@ -25,8 +26,12 @@ def _counterparty(user: User | None) -> RecipientOut | None:
 
 
 def tx_out(tx: Transaction, viewer: User) -> TransactionOut:
-    outgoing = tx.type is TransactionType.TRANSFER and tx.sender_id == viewer.id
-    if tx.type is TransactionType.DEPOSIT:
+    outgoing = (
+        tx.type in (TransactionType.TRANSFER, TransactionType.WITHDRAWAL)
+        and tx.sender_id == viewer.id
+    )
+    # Dépôt et retrait se font au guichet : personne en face.
+    if tx.type in (TransactionType.DEPOSIT, TransactionType.WITHDRAWAL):
         counterparty = None
     else:
         counterparty = _counterparty(tx.receiver if outgoing else tx.sender)
@@ -58,6 +63,12 @@ def transfer(body: TransferIn, user: VerifiedUser, db: DbSession) -> OperationOu
     tx = tx_service.transfer(
         db, user, body.to_phone, body.amount, body.pin, body.idempotency_key
     )
+    return _operation(tx, user, db)
+
+
+@router.post("/withdraw", status_code=status.HTTP_201_CREATED)
+def withdraw(body: WithdrawIn, user: VerifiedUser, db: DbSession) -> OperationOut:
+    tx = tx_service.withdraw(db, user, body.amount, body.pin, body.idempotency_key)
     return _operation(tx, user, db)
 
 

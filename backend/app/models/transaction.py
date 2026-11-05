@@ -15,10 +15,14 @@ from app.models.user import User
 class TransactionType(enum.StrEnum):
     DEPOSIT = "deposit"
     TRANSFER = "transfer"
+    WITHDRAWAL = "withdrawal"
 
 
 class Transaction(Base):
-    """Seules les opérations réussies sont enregistrées."""
+    """Seules les opérations réussies sont enregistrées.
+
+    dépôt : receiver seul · transfert : sender et receiver · retrait : sender seul.
+    """
 
     __tablename__ = "transactions"
     __table_args__ = (
@@ -33,11 +37,11 @@ class Transaction(Base):
         Enum(TransactionType, name="transaction_type", values_callable=enum_values)
     )
     sender_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
-    receiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    receiver_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
     amount: Mapped[int] = mapped_column(BigInteger)
     fee: Mapped[int] = mapped_column(BigInteger, default=0)
     idempotency_key: Mapped[uuid.UUID] = mapped_column(unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     sender: Mapped[User | None] = relationship(foreign_keys=[sender_id], lazy="selectin")
-    receiver: Mapped[User] = relationship(foreign_keys=[receiver_id], lazy="selectin")
+    receiver: Mapped[User | None] = relationship(foreign_keys=[receiver_id], lazy="selectin")

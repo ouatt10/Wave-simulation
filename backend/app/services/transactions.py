@@ -119,12 +119,42 @@ def transfer(
     return _commit(db, tx, sender, TransactionType.TRANSFER)
 
 
+def withdraw(db: Session, user: User, amount: int, pin: str, key: uuid.UUID) -> Transaction:
+    if (existing := _replay(db, key, user, TransactionType.WITHDRAWAL)) is not None:
+        return existing
+
+    _lock_users(db, user.id)
+    lockout.check_pin(db, user, pin, utcnow())
+
+    if user.balance < amount:
+        raise AppError(
+            400,
+            "insufficient_funds",
+            "Solde insuffisant pour ce retrait.",
+            balance=user.balance,
+            required=amount,
+        )
+
+    user.balance -= amount
+    tx = Transaction(
+        reference=_new_reference(),
+        type=TransactionType.WITHDRAWAL,
+        sender_id=user.id,
+        amount=amount,
+        fee=0,
+        idempotency_key=key,
+        created_at=utcnow(),
+    )
+    db.add(tx)
+    return _commit(db, tx, user, TransactionType.WITHDRAWAL)
+
+
 def _involving(user: User):
     return or_(Transaction.sender_id == user.id, Transaction.receiver_id == user.id)
 
 
 def _matching(user: User, search: str):
-    """Recherche par nom ou numéro de l'autre personne, référence, montant ou « dépôt »."""
+    """Recherche par nom ou numéro de l'autre personne, référence, montant, « dépôt » ou « retrait »."""
     term = search.strip()
     digits = "".join(c for c in term if c.isdigit())
     full_name = func.concat(Identity.first_name, " ", Identity.last_name)
@@ -145,6 +175,8 @@ def _matching(user: User, search: str):
         conditions.append(Transaction.amount == int(digits))
     if "dépôt".startswith(term.lower()) or "depot".startswith(term.lower()):
         conditions.append(Transaction.type == TransactionType.DEPOSIT)
+    if "retrait".startswith(term.lower()):
+        conditions.append(Transaction.type == TransactionType.WITHDRAWAL)
     return or_(*conditions)
 
 

@@ -21,6 +21,12 @@ class TransferIn(BaseModel):
     idempotency_key: uuid.UUID
 
 
+class WithdrawIn(BaseModel):
+    amount: Amount
+    pin: Pin
+    idempotency_key: uuid.UUID
+
+
 class TransactionOut(BaseModel):
     id: uuid.UUID
     reference: str

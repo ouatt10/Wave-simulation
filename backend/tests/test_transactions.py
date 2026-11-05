@@ -177,3 +177,51 @@ def test_history_search(client, make_user, login):
     assert search("650") == ["deposit"]
     assert search("Prénom") == ["transfer"]  # le nom d'Alice elle-même ne compte pas
     assert search("introuvable") == []
+
+
+def _withdraw(client, headers, amount, pin="1234", key=None):
+    return client.post(
+        "/transactions/withdraw",
+        headers=headers,
+        json={"amount": amount, "pin": pin, "idempotency_key": key or _key()},
+    )
+
+
+def test_withdraw_is_free_and_outgoing(client, make_user, login, balance_of):
+    make_user(ALICE, balance=10_000)
+    res = _withdraw(client, login(ALICE), 4_000)
+    assert res.status_code == 201
+    body = res.json()
+    assert body["balance"] == 6_000
+    assert body["transaction"]["type"] == "withdrawal"
+    assert body["transaction"]["direction"] == "out"
+    assert body["transaction"]["fee"] == 0
+    assert body["transaction"]["counterparty"] is None
+
+
+def test_withdraw_checks_balance_and_pin(client, make_user, login, balance_of):
+    make_user(ALICE, balance=1_000)
+    alice = login(ALICE)
+    too_much = _withdraw(client, alice, 1_001)
+    assert too_much.status_code == 400
+    assert too_much.json()["error"]["required"] == 1_001
+    assert _withdraw(client, alice, 500, pin="0000").status_code == 401
+    assert balance_of(ALICE) == 1_000
+
+
+def test_withdraw_is_idempotent(client, make_user, login, balance_of):
+    make_user(ALICE, balance=10_000)
+    alice, key = login(ALICE), _key()
+    first = _withdraw(client, alice, 2_000, key=key)
+    second = _withdraw(client, alice, 2_000, key=key)
+    assert first.json()["transaction"]["id"] == second.json()["transaction"]["id"]
+    assert balance_of(ALICE) == 8_000
+
+
+def test_history_search_withdrawal(client, make_user, login):
+    make_user(ALICE, balance=10_000)
+    alice = login(ALICE)
+    client.post("/transactions/deposit", headers=alice, json={"amount": 650, "idempotency_key": _key()})
+    _withdraw(client, alice, 1_000)
+    items = client.get("/transactions", headers=alice, params={"q": "retrait"}).json()["items"]
+    assert [t["type"] for t in items] == ["withdrawal"]
