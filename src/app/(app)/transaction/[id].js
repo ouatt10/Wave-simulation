@@ -53,7 +53,7 @@ export default function TransactionScreen() {
         </View>
         {isReceipt && (
           <Text style={styles.success}>
-            {tx.type === "deposit" ? "Dépôt réussi !" : "Transfert réussi !"}
+            {SUCCESS_TITLES[tx.type]}
           </Text>
         )}
         <Text style={styles.amount}>{signedAmount(tx)}</Text>
@@ -82,6 +82,12 @@ export default function TransactionScreen() {
     </Screen>
   );
 }
+
+const SUCCESS_TITLES = {
+  deposit: "Dépôt réussi !",
+  transfer: "Transfert réussi !",
+  withdrawal: "Retrait réussi !",
+};
 
 function Row({ label, value }) {
   return (

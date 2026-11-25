@@ -162,6 +162,13 @@ export default function HomeScreen() {
             label="Dépôt"
             onPress={() => router.push("/deposit")}
           />
+          <Action
+            icon="cash"
+            color="#C2410C"
+            bg="#FFEDD5"
+            label="Retrait"
+            onPress={() => router.push("/withdraw")}
+          />
         </View>
         <View style={styles.divider} />
       </View>

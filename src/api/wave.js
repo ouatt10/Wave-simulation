@@ -36,6 +36,12 @@ export const api = {
       body: { to_phone: toPhone, amount, pin, idempotency_key: idempotencyKey },
     }),
 
+  withdraw: ({ amount, pin, idempotencyKey }) =>
+    request("/transactions/withdraw", {
+      method: "POST",
+      body: { amount, pin, idempotency_key: idempotencyKey },
+    }),
+
   transactions: ({ limit = 20, cursor, q } = {}) => {
     let query = `limit=${limit}`;
     if (cursor) query += `&cursor=${cursor}`;

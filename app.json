@@ -17,7 +17,8 @@
           "recordAudioAndroid": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-status-bar"
     ],
     "ios": {
       "supportsTablet": true
@@ -28,7 +29,11 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.anonymous.WAVE"
     },
     "web": {
       "favicon": "./assets/favicon.png"

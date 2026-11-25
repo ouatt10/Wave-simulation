@@ -8,6 +8,9 @@ export function describeTransaction(tx) {
   if (tx.type === "deposit") {
     return { title: "Dépôt", icon: "add", tint: colors.success, bg: colors.successLight };
   }
+  if (tx.type === "withdrawal") {
+    return { title: "Retrait", icon: "arrow-up", tint: colors.primaryDark, bg: colors.primaryLight };
+  }
   const name = tx.counterparty?.full_name ?? tx.counterparty?.phone;
   return tx.direction === "out"
     ? { title: `À ${name}`, icon: "arrow-up", tint: colors.primaryDark, bg: colors.primaryLight }
